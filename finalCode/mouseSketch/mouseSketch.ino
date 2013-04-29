@@ -1,7 +1,10 @@
 #define MDATA 5
 #define MCLK 6
-//Clock is orange, data is green.
-//Power is blue and ground is white
+//Clock is white, data is orange.
+//Power is blue and ground is green
+
+int totalX = 0;
+int totalY = 0;
 
 void gohi(int pin)
 {
@@ -134,13 +137,18 @@ void loop()
   mstat = mouse_read();
   mx = mouse_read();
   my = mouse_read();
-
+  totalX = totalX + int(mx);
+  totalY = totalY+int(my);
+  Serial.print("X: ");
+  Serial.print(totalX, DEC);
+  Serial.print("\tY: ");
+  Serial.println(totalY, DEC);
   /* send the data back up */
-//  Serial.print(mstat, BIN);
-//  Serial.print("\tX=");
-//  Serial.print(mx, DEC);
-//  Serial.print("\tY=");
-//  Serial.print(my, DEC);
-//  Serial.println();
+  //Serial.print(mstat, BIN);
+  //Serial.print("\tX=");
+  //Serial.print(mx, DEC);
+  //Serial.print("\tY=");
+  //Serial.print(my, DEC);
+  //Serial.println();
   delay(20);
 }
