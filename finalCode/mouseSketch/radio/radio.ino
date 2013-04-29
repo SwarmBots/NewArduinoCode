@@ -1,11 +1,37 @@
+
+#include <SPI.h>
+#include "nRF24L01.h"
+#include "RF24.h"
+#include "printf.h"
+
 #define MDATA 5
 #define MCLK 6
 //Clock is white, data is orange.
 //Power is blue and ground is green
+//#define LeftMotorOne 3
+//#define LeftMotorTwo 4
+//#define RightMotorOne 7
+//#define RightMotorTwo 8
 
 int totalX = 0;
 int totalY = 0;
+int leftRemaining = 0;
+int rightRemaining = 0;
+int source = 0; //First bot
+int bot = 4; //t means that this is a bot, f for computer
 
+RF24 radio(9,10);
+
+//
+// Topology
+//
+
+// Radio pipe addresses for the 2 nodes to communicate.
+const uint64_t pipes[2] = { 0xF0F0F0F0E1LL, 0xF0F0F0F0D2LL };
+
+typedef enum { role_ping_out = 1, role_pong_back } role_e;
+
+role_e role = role_pong_back;
 void gohi(int pin)
 {
   pinMode(pin, INPUT);
@@ -116,47 +142,53 @@ void mouse_init()
   mouse_read();  
   mouse_write(0xf0); 
   mouse_read(); 
-  delayMicroseconds(100);
 }
 
-void setup()
+void setup(void)
 {
   Serial.begin(57600);
   mouse_init();
+
+  radio.begin();
+
+  // optionally, increase the delay between retries & # of retries
+  radio.setRetries(15,15);
+
+  role = role_pong_back; //should be   initialized to listen to master
+  radio.openWritingPipe(pipes[1]);
+  radio.openReadingPipe(1,pipes[0]);
+
+  radio.startListening();
+
 }
 
-void loop()
+void loop(void)
 {
-  char mstat;
-  char mx;
-  char my;
+  char mouseX;
+  char mouseY;
+  
+  mouse_write(0xeb);
+  mouse_read(); //Throw away acknoledgement of data reciept
+  mouse_read(); //Throw away button and wheel info
+  mouseX = mouse_read();
+  mouseY = mouse_read();
+  totalX = totalX + int(mouseX);
+  totalY = totalY + int(mouseY);
 
-  /* get a reading from the mouse */
-  mouse_write(0xeb);  /* give me data! */
-  mouse_read();      /* ignore ack */
-  mstat = mouse_read();
-  mx = mouse_read();
-  my = mouse_read();
-  totalX = totalX + int(mx);
-  totalY = totalY+int(my);
-  if (int(my)>2){
-    digitalWrite(MotorOne, HIGH);
-    digitalWrite(MotorTwo, LOW);
+  if (radio.available()){
+    unsigned long recievedInfo;
+    bool done = false;
+    while (!done){
+      done = radio.read(&recievedInfo, sizeof(unsigned long));
+      //Wait for the hub to switch back
+      delay(10);
+    }
+    radio.stopListening();
+    
+    int mouseInfo[4] = {source, bot, totalX, totalY};
+    radio.write(&mouseInfo, sizeof(int[4]));
+    
+    radio.startListening();
   }
-  if (int(my)<-2){
-    digitalWrite(MotorOne, LOW);
-    digitalWrite(MotorTwo, HIGH);
-  }
-  Serial.print("X: ");
-  Serial.print(totalX, DEC);
-  Serial.print("\tY: ");
-  Serial.println(totalY, DEC);
-  /* send the data back up */
-  //Serial.print(mstat, BIN);
-  //Serial.print("\tX=");
-  //Serial.print(mx, DEC);
-  //Serial.print("\tY=");
-  //Serial.print(my, DEC);
-  //Serial.println();
-  delay(20);
 }
+// vim:cin:ai:sts=2 sw=2 ft=cpp
