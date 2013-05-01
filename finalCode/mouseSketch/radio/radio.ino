@@ -10,7 +10,7 @@
 //Power is blue and ground is green
 //#define LeftMotorOne 3
 //#define LeftMotorTwo 4
-//#define RightMotorOne 7
+//#define RightMotorOne 7ru
 //#define RightMotorTwo 8
 
 int totalX = 0;
@@ -146,7 +146,6 @@ void mouse_init()
 
 void setup(void)
 {
-  Serial.begin(57600);
   mouse_init();
 
   radio.begin();
